@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../models/receita.dart';
+import '../services/receita_service.dart';
+
 class Inicio extends StatefulWidget {
   const Inicio({super.key});
 
@@ -11,10 +14,19 @@ class _InicioState extends State<Inicio> {
   int categoriaSelecionada = 0;
   int paginaSelecionada = 0;
 
-  final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _searchController =
+  TextEditingController();
+
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
+  final ReceitaService _receitaService = ReceitaService();
+
+  List<Receita> receitas = [];
+
   String? _termoPesquisado;
+  String? erro;
+
+  bool carregando = true;
 
   final categorias = [
     'Todas',
@@ -25,11 +37,11 @@ class _InicioState extends State<Inicio> {
     'Lanches',
   ];
 
-  final receitas = [
-    ['🍫', 'Brownie de chocolate', '45 min', 'Médio'],
-    ['🥗', 'Salada de frango', '20 min', 'Fácil'],
-    ['🍓', 'Vitamina de morango', '10 min', 'Fácil'],
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _carregarReceitas();
+  }
 
   @override
   void dispose() {
@@ -37,19 +49,255 @@ class _InicioState extends State<Inicio> {
     super.dispose();
   }
 
-  void _executarPesquisa() {
-    if (_formKey.currentState!.validate()) {
+  Future<void> _carregarReceitas() async {
+    setState(() {
+      carregando = true;
+      erro = null;
+    });
+
+    try {
+      final resultado =
+      await _receitaService.buscarReceitas();
+
+      if (!mounted) return;
+
       setState(() {
-        _termoPesquisado = _searchController.text.trim();
+        receitas = resultado;
+        carregando = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        erro = 'Não foi possível carregar as receitas.';
+        carregando = false;
+      });
+    }
+  }
+
+  Future<void> _executarPesquisa() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
+    final termo = _searchController.text.trim();
+
+    setState(() {
+      _termoPesquisado = termo;
+      carregando = true;
+      erro = null;
+    });
+
+    try {
+      final resultado =
+      await _receitaService.pesquisarReceitas(termo);
+
+      if (!mounted) return;
+
+      setState(() {
+        receitas = resultado;
+        carregando = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        erro = 'Não foi possível realizar a pesquisa.';
+        carregando = false;
       });
     }
   }
 
   void _limparPesquisa() {
+    _searchController.clear();
+
     setState(() {
-      _searchController.clear();
       _termoPesquisado = null;
     });
+
+    _carregarReceitas();
+  }
+
+  String _tempoTotal(Receita receita) {
+    final preparo = receita.tempoPreparo ?? 0;
+    final cozimento = receita.tempoCozimento ?? 0;
+
+    final total = preparo + cozimento;
+
+    if (total == 0) {
+      return 'Tempo não informado';
+    }
+
+    return '$total min';
+  }
+
+  Widget _imagemReceita(String? imagem, {double? height}) {
+    return Container(
+      height: height ?? 110,
+      width: height == null ? 110 : double.infinity,
+      color: const Color(0xFFDCE8D6),
+      child: imagem != null && imagem.isNotEmpty
+          ? Image.network(
+        imagem,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return const Icon(
+            Icons.restaurant,
+            size: 45,
+            color: Color(0xFF496747),
+          );
+        },
+      )
+          : const Icon(
+        Icons.restaurant,
+        size: 45,
+        color: Color(0xFF496747),
+      ),
+    );
+  }
+
+  Widget _cardReceita(Receita receita) {
+    return Card(
+      color: Colors.white,
+      elevation: 1,
+      margin: const EdgeInsets.only(bottom: 14),
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(10),
+        leading: ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: _imagemReceita(receita.imagem),
+        ),
+        title: Text(
+          receita.nome,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF263B32),
+          ),
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(
+                    Icons.access_time,
+                    size: 16,
+                    color: Color(0xFF496747),
+                  ),
+                  const SizedBox(width: 5),
+                  Text(_tempoTotal(receita)),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.star,
+                    size: 16,
+                    color: Colors.orange,
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    receita.avaliacao != null
+                        ? receita.avaliacao!.toStringAsFixed(1)
+                        : 'Sem avaliação',
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        trailing: const Icon(
+          Icons.favorite_border,
+          color: Color(0xFF496747),
+        ),
+      ),
+    );
+  }
+
+  Widget _conteudoReceitas() {
+    if (carregando) {
+      return const Padding(
+        padding: EdgeInsets.all(35),
+        child: Center(
+          child: CircularProgressIndicator(
+            color: Color(0xFF496747),
+          ),
+        ),
+      );
+    }
+
+    if (erro != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(25),
+          child: Column(
+            children: [
+              const Icon(
+                Icons.wifi_off,
+                size: 45,
+                color: Color(0xFF496747),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                erro!,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 15),
+              ElevatedButton.icon(
+                onPressed: _termoPesquisado == null
+                    ? _carregarReceitas
+                    : _executarPesquisa,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Tentar novamente'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF496747),
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (receitas.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.all(25),
+        child: Center(
+          child: Column(
+            children: [
+              Icon(
+                Icons.search_off,
+                size: 45,
+                color: Color(0xFF496747),
+              ),
+              SizedBox(height: 12),
+              Text(
+                'Nenhuma receita encontrada.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 16),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: receitas.map((receita) {
+        return _cardReceita(receita);
+      }).toList(),
+    );
   }
 
   @override
@@ -66,6 +314,7 @@ class _InicioState extends State<Inicio> {
         ),
         centerTitle: true,
       ),
+
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -79,14 +328,16 @@ class _InicioState extends State<Inicio> {
                 color: Color(0xFF263B32),
               ),
             ),
+
             const SizedBox(height: 5),
+
             const Text(
               'O que vamos cozinhar hoje?',
               style: TextStyle(fontSize: 16),
             ),
+
             const SizedBox(height: 20),
 
-            // FORMULÁRIO COM CAMPO ROTULADO E VALIDAÇÃO
             Form(
               key: _formKey,
               child: TextFormField(
@@ -94,9 +345,8 @@ class _InicioState extends State<Inicio> {
                 textInputAction: TextInputAction.search,
                 onFieldSubmitted: (_) => _executarPesquisa(),
                 validator: (value) {
-                  // Recusa entradas vazias ou apenas com espaços
                   if (value == null || value.trim().isEmpty) {
-                    return 'Digite o nome da receita para pesquisar (ex: Bolo, Salada).';
+                    return 'Digite o nome de uma receita.';
                   }
                   return null;
                 },
@@ -107,7 +357,9 @@ class _InicioState extends State<Inicio> {
                   suffixIcon: IconButton(
                     icon: const Icon(Icons.arrow_forward),
                     tooltip: 'Buscar',
-                    onPressed: _executarPesquisa,
+                    onPressed: carregando
+                        ? null
+                        : _executarPesquisa,
                   ),
                   filled: true,
                   fillColor: Colors.white,
@@ -117,11 +369,9 @@ class _InicioState extends State<Inicio> {
                   ),
                   errorBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(15),
-                    borderSide: const BorderSide(color: Colors.red, width: 1.5),
-                  ),
-                  focusedErrorBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(15),
-                    borderSide: const BorderSide(color: Colors.red, width: 1.5),
+                    borderSide: const BorderSide(
+                      color: Colors.red,
+                    ),
                   ),
                 ),
               ),
@@ -130,7 +380,10 @@ class _InicioState extends State<Inicio> {
             if (_termoPesquisado != null) ...[
               const SizedBox(height: 15),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFDCE8D6),
                   borderRadius: BorderRadius.circular(12),
@@ -139,7 +392,7 @@ class _InicioState extends State<Inicio> {
                   children: [
                     Expanded(
                       child: Text(
-                        'Exibindo resultados para: "$_termoPesquisado"',
+                        'Resultados para: "$_termoPesquisado"',
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF263B32),
@@ -147,8 +400,8 @@ class _InicioState extends State<Inicio> {
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close, size: 20),
-                      tooltip: 'Limpar e nova consulta',
+                      icon: const Icon(Icons.close),
+                      tooltip: 'Limpar pesquisa',
                       onPressed: _limparPesquisa,
                     ),
                   ],
@@ -165,6 +418,7 @@ class _InicioState extends State<Inicio> {
                 fontWeight: FontWeight.bold,
               ),
             ),
+
             const SizedBox(height: 12),
 
             SizedBox(
@@ -199,108 +453,107 @@ class _InicioState extends State<Inicio> {
                 fontWeight: FontWeight.bold,
               ),
             ),
+
             const SizedBox(height: 12),
 
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: const Color(0xFF496747),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '🍝',
-                    style: TextStyle(fontSize: 42),
-                  ),
-                  SizedBox(height: 10),
-                  Text(
-                    'Macarrão cremoso com frango',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+            if (!carregando && erro == null && receitas.isNotEmpty)
+              Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF496747),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _imagemReceita(
+                      receitas.first.imagem,
+                      height: 170,
                     ),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    'Uma receita prática e deliciosa para o dia a dia!',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.white,
+                    Padding(
+                      padding: const EdgeInsets.all(18),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            receitas.first.nome,
+                            style: const TextStyle(
+                              fontSize: 21,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              const Icon(
+                                Icons.access_time,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 5),
+                              Text(
+                                _tempoTotal(receitas.first),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(width: 15),
+                              const Icon(
+                                Icons.star,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 5),
+                              Text(
+                                receitas.first.avaliacao != null
+                                    ? receitas.first.avaliacao!
+                                    .toStringAsFixed(1)
+                                    : 'Sem avaliação',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.access_time,
-                        color: Colors.white,
-                        size: 18,
-                      ),
-                      SizedBox(width: 5),
-                      Text(
-                        '30 min',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                      SizedBox(width: 15),
-                      Icon(
-                        Icons.check_circle_outline,
-                        color: Colors.white,
-                        size: 18,
-                      ),
-                      SizedBox(width: 5),
-                      Text(
-                        'Fácil',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ],
-                  ),
-                ],
+                  ],
+                ),
+              )
+            else if (carregando)
+              const Center(
+                child: CircularProgressIndicator(
+                  color: Color(0xFF496747),
+                ),
+              )
+            else
+              const Text(
+                'Nenhuma receita em destaque disponível.',
               ),
-            ),
 
             const SizedBox(height: 25),
 
-            const Text(
-              'Receitas populares',
-              style: TextStyle(
+            Text(
+              _termoPesquisado == null
+                  ? 'Receitas populares'
+                  : 'Resultados da pesquisa',
+              style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF263B32),
               ),
             ),
+
             const SizedBox(height: 12),
 
-            ...receitas.map((receita) {
-              return Card(
-                color: Colors.white,
-                elevation: 1,
-                margin: const EdgeInsets.only(bottom: 12),
-                child: ListTile(
-                  leading: Text(
-                    receita[0],
-                    style: const TextStyle(fontSize: 32),
-                  ),
-                  title: Text(
-                    receita[1],
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  subtitle: Text('${receita[2]} • ${receita[3]}'),
-                  trailing: const Icon(
-                    Icons.favorite_border,
-                    color: Color(0xFF496747),
-                  ),
-                ),
-              );
-            }),
+            _conteudoReceitas(),
           ],
         ),
       ),
+
       bottomNavigationBar: NavigationBar(
         selectedIndex: paginaSelecionada,
         onDestinationSelected: (index) {
