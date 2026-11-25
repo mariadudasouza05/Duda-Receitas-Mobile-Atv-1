@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/receita.dart';
 import '../services/receita_service.dart';
+import 'detalhes_receita.dart';
 
 class Inicio extends StatefulWidget {
   const Inicio({super.key});
@@ -11,15 +12,12 @@ class Inicio extends StatefulWidget {
 }
 
 class _InicioState extends State<Inicio> {
-  int categoriaSelecionada = 0;
-  int paginaSelecionada = 0;
+  final ReceitaService _receitaService = ReceitaService();
 
   final TextEditingController _searchController =
   TextEditingController();
 
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-
-  final ReceitaService _receitaService = ReceitaService();
 
   List<Receita> receitas = [];
 
@@ -27,15 +25,12 @@ class _InicioState extends State<Inicio> {
   String? erro;
 
   bool carregando = true;
+  int paginaSelecionada = 0;
 
-  final categorias = [
-    'Todas',
-    'Café da manhã',
-    'Almoço',
-    'Jantar',
-    'Sobremesas',
-    'Lanches',
-  ];
+  static const Color verde = Color(0xFF496747);
+  static const Color fundo = Color(0xFFFAF7F0);
+  static const Color verdeClaro = Color(0xFFDCE8D6);
+  static const Color textoEscuro = Color(0xFF263B32);
 
   @override
   void initState() {
@@ -49,6 +44,7 @@ class _InicioState extends State<Inicio> {
     super.dispose();
   }
 
+  // Busca todas as receitas da API
   Future<void> _carregarReceitas() async {
     setState(() {
       carregando = true;
@@ -56,8 +52,7 @@ class _InicioState extends State<Inicio> {
     });
 
     try {
-      final resultado =
-      await _receitaService.buscarReceitas();
+      final resultado = await _receitaService.buscarReceitas();
 
       if (!mounted) return;
 
@@ -75,6 +70,7 @@ class _InicioState extends State<Inicio> {
     }
   }
 
+  // Pesquisa receitas pelo nome
   Future<void> _executarPesquisa() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -108,6 +104,7 @@ class _InicioState extends State<Inicio> {
     }
   }
 
+  // Limpa a pesquisa e carrega todas as receitas novamente
   void _limparPesquisa() {
     _searchController.clear();
 
@@ -118,6 +115,7 @@ class _InicioState extends State<Inicio> {
     _carregarReceitas();
   }
 
+  // Calcula o tempo total de preparo e cozimento
   String _tempoTotal(Receita receita) {
     final preparo = receita.tempoPreparo ?? 0;
     final cozimento = receita.tempoCozimento ?? 0;
@@ -131,11 +129,16 @@ class _InicioState extends State<Inicio> {
     return '$total min';
   }
 
-  Widget _imagemReceita(String? imagem, {double? height}) {
+  // Exibe a imagem da receita
+  Widget _imagemReceita(
+      String? imagem, {
+        double width = 100,
+        double height = 100,
+      }) {
     return Container(
-      height: height ?? 110,
-      width: height == null ? 110 : double.infinity,
-      color: const Color(0xFFDCE8D6),
+      width: width,
+      height: height,
+      color: verdeClaro,
       child: imagem != null && imagem.isNotEmpty
           ? Image.network(
         imagem,
@@ -143,152 +146,235 @@ class _InicioState extends State<Inicio> {
         errorBuilder: (context, error, stackTrace) {
           return const Icon(
             Icons.restaurant,
-            size: 45,
-            color: Color(0xFF496747),
+            size: 40,
+            color: verde,
           );
         },
       )
           : const Icon(
         Icons.restaurant,
-        size: 45,
-        color: Color(0xFF496747),
+        size: 40,
+        color: verde,
       ),
     );
   }
 
+  // Cartão de cada receita
   Widget _cardReceita(Receita receita) {
     return Card(
       color: Colors.white,
       elevation: 1,
       margin: const EdgeInsets.only(bottom: 14),
-      clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(16),
       ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(10),
-        leading: ClipRRect(
-          borderRadius: BorderRadius.circular(10),
-          child: _imagemReceita(receita.imagem),
-        ),
-        title: Text(
-          receita.nome,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF263B32),
-          ),
-        ),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) {
+                return DetalhesReceita(
+                  receita: receita,
+                );
+              },
+            ),
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Row(
             children: [
-              Row(
-                children: [
-                  const Icon(
-                    Icons.access_time,
-                    size: 16,
-                    color: Color(0xFF496747),
-                  ),
-                  const SizedBox(width: 5),
-                  Text(_tempoTotal(receita)),
-                ],
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: _imagemReceita(
+                  receita.imagem,
+                  width: 90,
+                  height: 100,
+                ),
               ),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  const Icon(
-                    Icons.star,
-                    size: 16,
-                    color: Colors.orange,
-                  ),
-                  const SizedBox(width: 5),
-                  Text(
-                    receita.avaliacao != null
-                        ? receita.avaliacao!.toStringAsFixed(1)
-                        : 'Sem avaliação',
-                  ),
-                ],
+
+              const SizedBox(width: 12),
+
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      receita.nome,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: textoEscuro,
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.access_time,
+                          size: 15,
+                          color: verde,
+                        ),
+                        const SizedBox(width: 5),
+                        Expanded(
+                          child: Text(
+                            _tempoTotal(receita),
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 5),
+
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.star,
+                          size: 15,
+                          color: Colors.orange,
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          receita.avaliacao != null
+                              ? '${receita.avaliacao!.toStringAsFixed(1)} / 5'
+                              : 'Sem avaliação',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: verde,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              const Icon(
+                Icons.arrow_forward_ios,
+                size: 15,
+                color: verde,
               ),
             ],
           ),
-        ),
-        trailing: const Icon(
-          Icons.favorite_border,
-          color: Color(0xFF496747),
         ),
       ),
     );
   }
 
+  // Controla carregamento, erros e resultados vazios
   Widget _conteudoReceitas() {
     if (carregando) {
       return const Padding(
         padding: EdgeInsets.all(35),
         child: Center(
           child: CircularProgressIndicator(
-            color: Color(0xFF496747),
+            color: verde,
           ),
         ),
       );
     }
 
     if (erro != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(25),
-          child: Column(
-            children: [
-              const Icon(
-                Icons.wifi_off,
-                size: 45,
-                color: Color(0xFF496747),
+      return Padding(
+        padding: const EdgeInsets.symmetric(
+          vertical: 45,
+          horizontal: 20,
+        ),
+        child: Column(
+          children: [
+            const Icon(
+              Icons.wifi_off,
+              size: 55,
+              color: verde,
+            ),
+
+            const SizedBox(height: 18),
+
+            Text(
+              erro!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 19,
+                fontWeight: FontWeight.bold,
+                color: textoEscuro,
               ),
-              const SizedBox(height: 12),
-              Text(
-                erro!,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 16),
+            ),
+
+            const SizedBox(height: 10),
+
+            const Text(
+              'Verifique sua conexão e tente novamente.',
+              textAlign: TextAlign.center,
+            ),
+
+            const SizedBox(height: 20),
+
+            ElevatedButton(
+              onPressed: _termoPesquisado == null
+                  ? _carregarReceitas
+                  : _executarPesquisa,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: verde,
+                foregroundColor: Colors.white,
               ),
-              const SizedBox(height: 15),
-              ElevatedButton.icon(
-                onPressed: _termoPesquisado == null
-                    ? _carregarReceitas
-                    : _executarPesquisa,
-                icon: const Icon(Icons.refresh),
-                label: const Text('Tentar novamente'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF496747),
-                  foregroundColor: Colors.white,
-                ),
-              ),
-            ],
-          ),
+              child: const Text('Tentar novamente'),
+            ),
+          ],
         ),
       );
     }
 
     if (receitas.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.all(25),
-        child: Center(
-          child: Column(
-            children: [
-              Icon(
-                Icons.search_off,
-                size: 45,
-                color: Color(0xFF496747),
+      return Padding(
+        padding: const EdgeInsets.symmetric(
+          vertical: 40,
+          horizontal: 20,
+        ),
+        child: Column(
+          children: [
+            const Icon(
+              Icons.search_off,
+              size: 55,
+              color: verde,
+            ),
+
+            const SizedBox(height: 15),
+
+            const Text(
+              'Nenhum resultado',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: textoEscuro,
               ),
-              SizedBox(height: 12),
-              Text(
-                'Nenhuma receita encontrada.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16),
+            ),
+
+            const SizedBox(height: 10),
+
+            const Text(
+              'Não encontramos receitas para esse nome. Tente outro termo.',
+              textAlign: TextAlign.center,
+            ),
+
+            const SizedBox(height: 20),
+
+            ElevatedButton(
+              onPressed: _limparPesquisa,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: verde,
+                foregroundColor: Colors.white,
               ),
-            ],
-          ),
+              child: const Text('Ver todas as receitas'),
+            ),
+          ],
         ),
       );
     }
@@ -300,261 +386,223 @@ class _InicioState extends State<Inicio> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFFAF7F0),
-        title: const Text(
-          'Receitas da Duda',
-          style: TextStyle(
-            color: Color(0xFF496747),
-            fontWeight: FontWeight.bold,
+  // Tela principal de exploração
+  Widget _telaExplorar() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Receitas',
+            style: TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
+              color: textoEscuro,
+            ),
           ),
-        ),
-        centerTitle: true,
+
+          const SizedBox(height: 5),
+
+          const Text(
+            'Pesquise uma receita pelo nome.',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.black54,
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          Form(
+            key: _formKey,
+            child: TextFormField(
+              controller: _searchController,
+              textInputAction: TextInputAction.search,
+              onFieldSubmitted: (_) => _executarPesquisa(),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Digite o nome de uma receita.';
+                }
+
+                return null;
+              },
+              decoration: InputDecoration(
+                hintText: 'Buscar pelo nome',
+                prefixIcon: const Icon(
+                  Icons.search,
+                  color: verde,
+                ),
+                filled: true,
+                fillColor: Colors.white,
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 16,
+                  horizontal: 15,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide.none,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(
+                    color: verde,
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton(
+              onPressed: carregando ? null : _executarPesquisa,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: verde,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(13),
+                ),
+              ),
+              child: const Text(
+                'Buscar receitas',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 28),
+
+          Text(
+            _termoPesquisado == null
+                ? 'Receitas disponíveis'
+                : 'Resultados para "$_termoPesquisado"',
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: textoEscuro,
+            ),
+          ),
+
+          const SizedBox(height: 5),
+
+          Text(
+            _termoPesquisado == null
+                ? 'Selecione uma receita para ver o preparo.'
+                : 'Receitas encontradas na pesquisa.',
+            style: const TextStyle(
+              fontSize: 13,
+              color: Colors.black54,
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          _conteudoReceitas(),
+
+          if (_termoPesquisado != null &&
+              !carregando &&
+              erro == null &&
+              receitas.isNotEmpty) ...[
+            const SizedBox(height: 10),
+
+            OutlinedButton(
+              onPressed: _limparPesquisa,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: verde,
+                minimumSize: const Size(
+                  double.infinity,
+                  48,
+                ),
+                side: const BorderSide(color: verde),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(13),
+                ),
+              ),
+              child: const Text('Limpar pesquisa'),
+            ),
+          ],
+        ],
       ),
+    );
+  }
 
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+  // Tela de favoritos (a funcionalidade será implementada depois)
+  Widget _telaFavoritos() {
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.all(25),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text(
-              'Olá!',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF263B32),
-              ),
+            Icon(
+              Icons.favorite_border,
+              size: 65,
+              color: verde,
             ),
 
-            const SizedBox(height: 5),
-
-            const Text(
-              'O que vamos cozinhar hoje?',
-              style: TextStyle(fontSize: 16),
-            ),
-
-            const SizedBox(height: 20),
-
-            Form(
-              key: _formKey,
-              child: TextFormField(
-                controller: _searchController,
-                textInputAction: TextInputAction.search,
-                onFieldSubmitted: (_) => _executarPesquisa(),
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Digite o nome de uma receita.';
-                  }
-                  return null;
-                },
-                decoration: InputDecoration(
-                  labelText: 'Pesquisar receita',
-                  hintText: 'Digite o nome da receita...',
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.arrow_forward),
-                    tooltip: 'Buscar',
-                    onPressed: carregando
-                        ? null
-                        : _executarPesquisa,
-                  ),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(15),
-                    borderSide: BorderSide.none,
-                  ),
-                  errorBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(15),
-                    borderSide: const BorderSide(
-                      color: Colors.red,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
-            if (_termoPesquisado != null) ...[
-              const SizedBox(height: 15),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFDCE8D6),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Resultados para: "$_termoPesquisado"',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF263B32),
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      tooltip: 'Limpar pesquisa',
-                      onPressed: _limparPesquisa,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-
-            const SizedBox(height: 22),
-
-            const Text(
-              'Categorias',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            SizedBox(
-              height: 42,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: categorias.length,
-                itemBuilder: (context, index) {
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: ChoiceChip(
-                      label: Text(categorias[index]),
-                      selected: categoriaSelecionada == index,
-                      selectedColor: const Color(0xFFDCE8D6),
-                      onSelected: (selecionada) {
-                        setState(() {
-                          categoriaSelecionada = index;
-                        });
-                      },
-                    ),
-                  );
-                },
-              ),
-            ),
-
-            const SizedBox(height: 25),
-
-            const Text(
-              'Receita em destaque',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            if (!carregando && erro == null && receitas.isNotEmpty)
-              Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF496747),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _imagemReceita(
-                      receitas.first.imagem,
-                      height: 170,
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(18),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            receitas.first.nome,
-                            style: const TextStyle(
-                              fontSize: 21,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.access_time,
-                                color: Colors.white,
-                                size: 18,
-                              ),
-                              const SizedBox(width: 5),
-                              Text(
-                                _tempoTotal(receitas.first),
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                ),
-                              ),
-                              const SizedBox(width: 15),
-                              const Icon(
-                                Icons.star,
-                                color: Colors.white,
-                                size: 18,
-                              ),
-                              const SizedBox(width: 5),
-                              Text(
-                                receitas.first.avaliacao != null
-                                    ? receitas.first.avaliacao!
-                                    .toStringAsFixed(1)
-                                    : 'Sem avaliação',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              )
-            else if (carregando)
-              const Center(
-                child: CircularProgressIndicator(
-                  color: Color(0xFF496747),
-                ),
-              )
-            else
-              const Text(
-                'Nenhuma receita em destaque disponível.',
-              ),
-
-            const SizedBox(height: 25),
+            SizedBox(height: 18),
 
             Text(
-              _termoPesquisado == null
-                  ? 'Receitas populares'
-                  : 'Resultados da pesquisa',
-              style: const TextStyle(
-                fontSize: 20,
+              'Nenhum favorito',
+              style: TextStyle(
+                fontSize: 22,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF263B32),
+                color: textoEscuro,
               ),
             ),
 
-            const SizedBox(height: 12),
+            SizedBox(height: 10),
 
-            _conteudoReceitas(),
+            Text(
+              'Marque uma receita como favorita para encontrá-la aqui.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.black54,
+                fontSize: 14,
+              ),
+            ),
           ],
         ),
       ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: fundo,
+
+      appBar: AppBar(
+        backgroundColor: fundo,
+        elevation: 0,
+        title: const Text(
+          'Saborê',
+          style: TextStyle(
+            color: verde,
+            fontSize: 23,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+
+      body: paginaSelecionada == 0
+          ? _telaExplorar()
+          : _telaFavoritos(),
 
       bottomNavigationBar: NavigationBar(
+        backgroundColor: Colors.white,
+        indicatorColor: verdeClaro,
         selectedIndex: paginaSelecionada,
         onDestinationSelected: (index) {
           setState(() {
@@ -563,21 +611,14 @@ class _InicioState extends State<Inicio> {
         },
         destinations: const [
           NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Início',
+            icon: Icon(Icons.search),
+            selectedIcon: Icon(Icons.search),
+            label: 'Explorar',
           ),
           NavigationDestination(
             icon: Icon(Icons.favorite_border),
+            selectedIcon: Icon(Icons.favorite),
             label: 'Favoritos',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.menu_book_outlined),
-            label: 'Receitas',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            label: 'Perfil',
           ),
         ],
       ),
