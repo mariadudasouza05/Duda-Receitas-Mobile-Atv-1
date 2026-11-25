@@ -14,9 +14,7 @@ class Inicio extends StatefulWidget {
 class _InicioState extends State<Inicio> {
   final ReceitaService _receitaService = ReceitaService();
 
-  final TextEditingController _searchController =
-  TextEditingController();
-
+  final TextEditingController _searchController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   List<Receita> receitas = [];
@@ -25,7 +23,8 @@ class _InicioState extends State<Inicio> {
   String? _termoPesquisado;
   String? erro;
 
-  bool carregando = true;
+  // Inicia como false para que a primeira chamada em initState execute normalmente
+  bool carregando = false;
   int paginaSelecionada = 0;
 
   static const Color verde = Color(0xFF496747);
@@ -39,20 +38,16 @@ class _InicioState extends State<Inicio> {
     _carregarReceitas();
   }
 
+  // Fonte única de verdade para os favoritos na sessão, evitando duplicatas pelo ID (RF05)
   void _atualizarFavorito(Receita receita, bool salvar) {
     setState(() {
       if (salvar) {
-        final jaExiste = favoritos.any(
-              (item) => item.id == receita.id,
-        );
-
+        final jaExiste = favoritos.any((item) => item.id == receita.id);
         if (!jaExiste) {
           favoritos.add(receita);
         }
       } else {
-        favoritos.removeWhere(
-              (item) => item.id == receita.id,
-        );
+        favoritos.removeWhere((item) => item.id == receita.id);
       }
     });
   }
@@ -63,7 +58,10 @@ class _InicioState extends State<Inicio> {
     super.dispose();
   }
 
+  // Carrega a listagem inicial da API com proteção contra chamadas concorrentes e diagnóstico de erro
   Future<void> _carregarReceitas() async {
+    if (carregando) return;
+
     setState(() {
       carregando = true;
       erro = null;
@@ -79,16 +77,21 @@ class _InicioState extends State<Inicio> {
         carregando = false;
       });
     } catch (e) {
+      debugPrint('=== ERRO AO CARREGAR RECEITAS: $e ===');
+
       if (!mounted) return;
 
       setState(() {
-        erro = 'Não foi possível carregar as receitas.';
+        erro = 'Não foi possível carregar as receitas.\n\nDetalhe: $e';
         carregando = false;
       });
     }
   }
 
+  // Executa a busca remota validando campo vazio e bloqueando cliques repetidos (RF03, RF06)
   Future<void> _executarPesquisa() async {
+    if (carregando) return;
+
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -102,8 +105,7 @@ class _InicioState extends State<Inicio> {
     });
 
     try {
-      final resultado =
-      await _receitaService.pesquisarReceitas(termo);
+      final resultado = await _receitaService.pesquisarReceitas(termo);
 
       if (!mounted) return;
 
@@ -112,16 +114,21 @@ class _InicioState extends State<Inicio> {
         carregando = false;
       });
     } catch (e) {
+      debugPrint('=== ERRO AO PESQUISAR RECEITAS: $e ===');
+
       if (!mounted) return;
 
       setState(() {
-        erro = 'Não foi possível realizar a pesquisa.';
+        erro = 'Não foi possível realizar a pesquisa.\n\nDetalhe: $e';
         carregando = false;
       });
     }
   }
 
+  // Limpa o campo de busca e restaura a listagem completa (RF03)
   void _limparPesquisa() {
+    if (carregando) return;
+
     _searchController.clear();
 
     setState(() {
@@ -131,19 +138,24 @@ class _InicioState extends State<Inicio> {
     _carregarReceitas();
   }
 
+  // Verifica se ambos os tempos são nulos antes de somar para não confundir ausência com zero
   String _tempoTotal(Receita receita) {
+    if (receita.tempoPreparo == null && receita.tempoCozimento == null) {
+      return 'Tempo não informado';
+    }
+
     final preparo = receita.tempoPreparo ?? 0;
     final cozimento = receita.tempoCozimento ?? 0;
-
     final total = preparo + cozimento;
 
-    if (total == 0) {
+    if (total <= 0) {
       return 'Tempo não informado';
     }
 
     return '$total min';
   }
 
+  // Exibe imagem da receita ou alternativa visual caso falhe ou esteja ausente (RF02)
   Widget _imagemReceita(
       String? imagem, {
         double width = 100,
@@ -213,9 +225,7 @@ class _InicioState extends State<Inicio> {
                   height: 100,
                 ),
               ),
-
               const SizedBox(width: 12),
-
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -230,9 +240,7 @@ class _InicioState extends State<Inicio> {
                         color: textoEscuro,
                       ),
                     ),
-
                     const SizedBox(height: 12),
-
                     Row(
                       children: [
                         const Icon(
@@ -249,9 +257,7 @@ class _InicioState extends State<Inicio> {
                         ),
                       ],
                     ),
-
                     const SizedBox(height: 5),
-
                     Row(
                       children: [
                         const Icon(
@@ -275,7 +281,6 @@ class _InicioState extends State<Inicio> {
                   ],
                 ),
               ),
-
               const Icon(
                 Icons.arrow_forward_ios,
                 size: 15,
@@ -288,14 +293,20 @@ class _InicioState extends State<Inicio> {
     );
   }
 
+  // Gerencia os estados visuais da listagem: carregando, erro, vazio e sucesso (RF06, RF07, RF08)
   Widget _conteudoReceitas() {
     if (carregando) {
       return const Padding(
         padding: EdgeInsets.all(35),
-        child: Center(
-          child: CircularProgressIndicator(
-            color: verde,
-          ),
+        child: Column(
+          children: [
+            CircularProgressIndicator(color: verde),
+            SizedBox(height: 14),
+            Text(
+              'Carregando receitas...',
+              style: TextStyle(color: Colors.black54),
+            ),
+          ],
         ),
       );
     }
@@ -313,28 +324,22 @@ class _InicioState extends State<Inicio> {
               size: 55,
               color: verde,
             ),
-
             const SizedBox(height: 18),
-
             Text(
               erro!,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontSize: 19,
+                fontSize: 17,
                 fontWeight: FontWeight.bold,
                 color: textoEscuro,
               ),
             ),
-
             const SizedBox(height: 10),
-
             const Text(
               'Verifique sua conexão e tente novamente.',
               textAlign: TextAlign.center,
             ),
-
             const SizedBox(height: 20),
-
             ElevatedButton(
               onPressed: _termoPesquisado == null
                   ? _carregarReceitas
@@ -363,9 +368,7 @@ class _InicioState extends State<Inicio> {
               size: 55,
               color: verde,
             ),
-
             const SizedBox(height: 15),
-
             const Text(
               'Nenhum resultado',
               style: TextStyle(
@@ -374,16 +377,12 @@ class _InicioState extends State<Inicio> {
                 color: textoEscuro,
               ),
             ),
-
             const SizedBox(height: 10),
-
             const Text(
               'Não encontramos receitas para esse nome. Tente outro termo.',
               textAlign: TextAlign.center,
             ),
-
             const SizedBox(height: 20),
-
             ElevatedButton(
               onPressed: _limparPesquisa,
               style: ElevatedButton.styleFrom(
@@ -418,9 +417,7 @@ class _InicioState extends State<Inicio> {
               color: textoEscuro,
             ),
           ),
-
           const SizedBox(height: 5),
-
           const Text(
             'Pesquise uma receita pelo nome.',
             style: TextStyle(
@@ -428,9 +425,7 @@ class _InicioState extends State<Inicio> {
               color: Colors.black54,
             ),
           ),
-
           const SizedBox(height: 20),
-
           Form(
             key: _formKey,
             child: TextFormField(
@@ -441,7 +436,6 @@ class _InicioState extends State<Inicio> {
                 if (value == null || value.trim().isEmpty) {
                   return 'Digite o nome de uma receita.';
                 }
-
                 return null;
               },
               decoration: InputDecoration(
@@ -466,16 +460,12 @@ class _InicioState extends State<Inicio> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(
-                    color: verde,
-                  ),
+                  borderSide: const BorderSide(color: verde),
                 ),
               ),
             ),
           ),
-
           const SizedBox(height: 12),
-
           SizedBox(
             width: double.infinity,
             height: 50,
@@ -497,9 +487,7 @@ class _InicioState extends State<Inicio> {
               ),
             ),
           ),
-
           const SizedBox(height: 28),
-
           Text(
             _termoPesquisado == null
                 ? 'Receitas disponíveis'
@@ -510,9 +498,7 @@ class _InicioState extends State<Inicio> {
               color: textoEscuro,
             ),
           ),
-
           const SizedBox(height: 5),
-
           Text(
             _termoPesquisado == null
                 ? 'Selecione uma receita para ver o preparo.'
@@ -522,25 +508,18 @@ class _InicioState extends State<Inicio> {
               color: Colors.black54,
             ),
           ),
-
           const SizedBox(height: 16),
-
           _conteudoReceitas(),
-
           if (_termoPesquisado != null &&
               !carregando &&
               erro == null &&
               receitas.isNotEmpty) ...[
             const SizedBox(height: 10),
-
             OutlinedButton(
               onPressed: _limparPesquisa,
               style: OutlinedButton.styleFrom(
                 foregroundColor: verde,
-                minimumSize: const Size(
-                  double.infinity,
-                  48,
-                ),
+                minimumSize: const Size(double.infinity, 48),
                 side: const BorderSide(color: verde),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(13),
@@ -561,40 +540,41 @@ class _InicioState extends State<Inicio> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Minhas receitas favoritas',
+            'Favoritos',
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.bold,
               color: textoEscuro,
             ),
           ),
-
           const SizedBox(height: 8),
-
           const Text(
-            'Suas receitas salvas estão aqui.',
+            'Receitas salvas nesta sessão.',
             style: TextStyle(
               color: Colors.black54,
               fontSize: 14,
             ),
           ),
-
           const SizedBox(height: 20),
-
           if (favoritos.isEmpty)
             Expanded(
               child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(
-                      Icons.favorite_border,
-                      size: 65,
-                      color: verde,
+                    Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: const BoxDecoration(
+                        color: verdeClaro,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.favorite_border,
+                        size: 45,
+                        color: textoEscuro,
+                      ),
                     ),
-
                     const SizedBox(height: 18),
-
                     const Text(
                       'Nenhum favorito',
                       style: TextStyle(
@@ -603,15 +583,39 @@ class _InicioState extends State<Inicio> {
                         color: textoEscuro,
                       ),
                     ),
-
                     const SizedBox(height: 10),
-
                     const Text(
                       'Marque uma receita como favorita para encontrá-la aqui.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Colors.black54,
                         fontSize: 14,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          setState(() {
+                            paginaSelecionada = 0;
+                          });
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: verde,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(13),
+                          ),
+                        ),
+                        child: const Text(
+                          'Explorar receitas',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -624,7 +628,6 @@ class _InicioState extends State<Inicio> {
                 itemCount: favoritos.length,
                 itemBuilder: (context, index) {
                   final receita = favoritos[index];
-
                   return _cardReceita(receita);
                 },
               ),
@@ -638,7 +641,6 @@ class _InicioState extends State<Inicio> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: fundo,
-
       appBar: AppBar(
         backgroundColor: fundo,
         elevation: 0,
@@ -651,11 +653,7 @@ class _InicioState extends State<Inicio> {
           ),
         ),
       ),
-
-      body: paginaSelecionada == 0
-          ? _telaExplorar()
-          : _telaFavoritos(),
-
+      body: paginaSelecionada == 0 ? _telaExplorar() : _telaFavoritos(),
       bottomNavigationBar: NavigationBar(
         backgroundColor: Colors.white,
         indicatorColor: verdeClaro,
