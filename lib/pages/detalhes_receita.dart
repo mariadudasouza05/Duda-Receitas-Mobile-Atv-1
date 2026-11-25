@@ -3,10 +3,14 @@ import '../models/receita.dart';
 
 class DetalhesReceita extends StatefulWidget {
   final Receita receita;
+  final bool favoritaInicial;
+  final ValueChanged<bool> onFavoritoAlterado;
 
   const DetalhesReceita({
     super.key,
     required this.receita,
+    required this.favoritaInicial,
+    required this.onFavoritoAlterado,
   });
 
   @override
@@ -14,7 +18,13 @@ class DetalhesReceita extends StatefulWidget {
 }
 
 class _DetalhesReceitaState extends State<DetalhesReceita> {
-  bool favorita = false;
+  late bool favorita;
+
+  @override
+  void initState() {
+    super.initState();
+    favorita = widget.favoritaInicial;
+  }
 
   static const Color verde = Color(0xFF496747);
   static const Color fundo = Color(0xFFFAF7F0);
@@ -58,6 +68,7 @@ class _DetalhesReceitaState extends State<DetalhesReceita> {
               setState(() {
                 favorita = !favorita;
               });
+              widget.onFavoritoAlterado(favorita);
             },
             icon: Icon(
               favorita

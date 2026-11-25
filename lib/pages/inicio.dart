@@ -20,6 +20,7 @@ class _InicioState extends State<Inicio> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   List<Receita> receitas = [];
+  List<Receita> favoritos = [];
 
   String? _termoPesquisado;
   String? erro;
@@ -38,13 +39,30 @@ class _InicioState extends State<Inicio> {
     _carregarReceitas();
   }
 
+  void _atualizarFavorito(Receita receita, bool salvar) {
+    setState(() {
+      if (salvar) {
+        final jaExiste = favoritos.any(
+              (item) => item.id == receita.id,
+        );
+
+        if (!jaExiste) {
+          favoritos.add(receita);
+        }
+      } else {
+        favoritos.removeWhere(
+              (item) => item.id == receita.id,
+        );
+      }
+    });
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
   }
 
-  // Busca todas as receitas da API
   Future<void> _carregarReceitas() async {
     setState(() {
       carregando = true;
@@ -70,7 +88,6 @@ class _InicioState extends State<Inicio> {
     }
   }
 
-  // Pesquisa receitas pelo nome
   Future<void> _executarPesquisa() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -104,7 +121,6 @@ class _InicioState extends State<Inicio> {
     }
   }
 
-  // Limpa a pesquisa e carrega todas as receitas novamente
   void _limparPesquisa() {
     _searchController.clear();
 
@@ -115,7 +131,6 @@ class _InicioState extends State<Inicio> {
     _carregarReceitas();
   }
 
-  // Calcula o tempo total de preparo e cozimento
   String _tempoTotal(Receita receita) {
     final preparo = receita.tempoPreparo ?? 0;
     final cozimento = receita.tempoCozimento ?? 0;
@@ -129,7 +144,6 @@ class _InicioState extends State<Inicio> {
     return '$total min';
   }
 
-  // Exibe a imagem da receita
   Widget _imagemReceita(
       String? imagem, {
         double width = 100,
@@ -159,7 +173,6 @@ class _InicioState extends State<Inicio> {
     );
   }
 
-  // Cartão de cada receita
   Widget _cardReceita(Receita receita) {
     return Card(
       color: Colors.white,
@@ -177,6 +190,12 @@ class _InicioState extends State<Inicio> {
               builder: (context) {
                 return DetalhesReceita(
                   receita: receita,
+                  favoritaInicial: favoritos.any(
+                        (item) => item.id == receita.id,
+                  ),
+                  onFavoritoAlterado: (salvar) {
+                    _atualizarFavorito(receita, salvar);
+                  },
                 );
               },
             ),
@@ -269,7 +288,6 @@ class _InicioState extends State<Inicio> {
     );
   }
 
-  // Controla carregamento, erros e resultados vazios
   Widget _conteudoReceitas() {
     if (carregando) {
       return const Padding(
@@ -386,7 +404,6 @@ class _InicioState extends State<Inicio> {
     );
   }
 
-  // Tela principal de exploração
   Widget _telaExplorar() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -537,43 +554,82 @@ class _InicioState extends State<Inicio> {
     );
   }
 
-  // Tela de favoritos (a funcionalidade será implementada depois)
   Widget _telaFavoritos() {
-    return const Center(
-      child: Padding(
-        padding: EdgeInsets.all(25),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.favorite_border,
-              size: 65,
-              color: verde,
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Minhas receitas favoritas',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: textoEscuro,
             ),
+          ),
 
-            SizedBox(height: 18),
+          const SizedBox(height: 8),
 
-            Text(
-              'Nenhum favorito',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: textoEscuro,
+          const Text(
+            'Suas receitas salvas estão aqui.',
+            style: TextStyle(
+              color: Colors.black54,
+              fontSize: 14,
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          if (favoritos.isEmpty)
+            Expanded(
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.favorite_border,
+                      size: 65,
+                      color: verde,
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    const Text(
+                      'Nenhum favorito',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: textoEscuro,
+                      ),
+                    ),
+
+                    const SizedBox(height: 10),
+
+                    const Text(
+                      'Marque uma receita como favorita para encontrá-la aqui.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.black54,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            Expanded(
+              child: ListView.builder(
+                itemCount: favoritos.length,
+                itemBuilder: (context, index) {
+                  final receita = favoritos[index];
+
+                  return _cardReceita(receita);
+                },
               ),
             ),
-
-            SizedBox(height: 10),
-
-            Text(
-              'Marque uma receita como favorita para encontrá-la aqui.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.black54,
-                fontSize: 14,
-              ),
-            ),
-          ],
-        ),
+        ],
       ),
     );
   }
