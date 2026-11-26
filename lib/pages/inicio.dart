@@ -23,7 +23,6 @@ class _InicioState extends State<Inicio> {
   String? _termoPesquisado;
   String? erro;
 
-  // Inicia como false para que a primeira chamada em initState execute normalmente
   bool carregando = false;
   int paginaSelecionada = 0;
 
@@ -38,7 +37,6 @@ class _InicioState extends State<Inicio> {
     _carregarReceitas();
   }
 
-  // Fonte única de verdade para os favoritos na sessão, evitando duplicatas pelo ID (RF05)
   void _atualizarFavorito(Receita receita, bool salvar) {
     setState(() {
       if (salvar) {
@@ -58,7 +56,6 @@ class _InicioState extends State<Inicio> {
     super.dispose();
   }
 
-  // Carrega a listagem inicial da API com proteção contra chamadas concorrentes e diagnóstico de erro
   Future<void> _carregarReceitas() async {
     if (carregando) return;
 
@@ -88,7 +85,6 @@ class _InicioState extends State<Inicio> {
     }
   }
 
-  // Executa a busca remota validando campo vazio e bloqueando cliques repetidos (RF03, RF06)
   Future<void> _executarPesquisa() async {
     if (carregando) return;
 
@@ -125,7 +121,6 @@ class _InicioState extends State<Inicio> {
     }
   }
 
-  // Limpa o campo de busca e restaura a listagem completa (RF03)
   void _limparPesquisa() {
     if (carregando) return;
 
@@ -138,7 +133,6 @@ class _InicioState extends State<Inicio> {
     _carregarReceitas();
   }
 
-  // Verifica se ambos os tempos são nulos antes de somar para não confundir ausência com zero
   String _tempoTotal(Receita receita) {
     if (receita.tempoPreparo == null && receita.tempoCozimento == null) {
       return 'Tempo não informado';
@@ -155,7 +149,6 @@ class _InicioState extends State<Inicio> {
     return '$total min';
   }
 
-  // Exibe imagem da receita ou alternativa visual caso falhe ou esteja ausente (RF02)
   Widget _imagemReceita(
       String? imagem, {
         double width = 100,
@@ -293,7 +286,6 @@ class _InicioState extends State<Inicio> {
     );
   }
 
-  // Gerencia os estados visuais da listagem: carregando, erro, vazio e sucesso (RF06, RF07, RF08)
   Widget _conteudoReceitas() {
     if (carregando) {
       return const Padding(
