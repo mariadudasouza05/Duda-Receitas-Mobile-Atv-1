@@ -1,16 +1,21 @@
-# Saborê — Aplicativo de Receitas
+# Duda Receitas — Aplicativo de Receitas
 
 ## Sobre o projeto
 
-O Saborê é um aplicativo mobile desenvolvido em Flutter que permite explorar, pesquisar e favoritar receitas culinárias de forma simples e intuitiva.
+O app Duda Receitas foi criado a partir do Saborê: um aplicativo mobile desenvolvido em Flutter que 
+permite explorar, pesquisar e favoritar receitas culinárias de forma simples e intuitiva.
 
-O aplicativo utiliza a API DummyJSON para obter informações sobre diferentes receitas, apresentando imagens, ingredientes, instruções de preparo, avaliações, tempo de preparo e quantidade de porções.
+O aplicativo utiliza a API DummyJSON para obter informações sobre diferentes receitas, apresentando 
+imagens, ingredientes, instruções de preparo, avaliações, tempo de preparo e quantidade de porções.
 
-O projeto foi desenvolvido como atividade acadêmica da disciplina de Desenvolvimento Mobile com Flutter, do curso de Engenharia de Software da UniFil.
+O projeto foi desenvolvido como atividade acadêmica da disciplina de Desenvolvimento Mobile com 
+Flutter, do curso de Engenharia de Software da UniFil.
 
 ## Objetivo
 
-O objetivo do projeto é aplicar os conhecimentos adquiridos durante a disciplina, desenvolvendo uma aplicação mobile integrada a uma API externa, utilizando conceitos de navegação, gerenciamento de estado, programação assíncrona e construção de interfaces.
+O objetivo do projeto é aplicar os conhecimentos adquiridos durante a disciplina, desenvolvendo uma 
+aplicação mobile integrada a uma API externa, utilizando conceitos de navegação, gerenciamento de 
+estado, programação assíncrona e construção de interfaces.
 
 ## Funcionalidades
 
@@ -53,15 +58,14 @@ https://dummyjson.com/docs/recipes
 ### Endpoints utilizados
 
 | Método | Endpoint | Descrição |
-|---|---|---|
 | GET | `/recipes` | Listagem de receitas |
 | GET | `/recipes/search?q=nome` | Pesquisa de receitas pelo nome |
 
 URL base:
-
 `https://dummyjson.com`
 
-Os dados recebidos em formato JSON são convertidos em objetos da classe `Receita`, permitindo sua utilização nas diferentes telas do aplicativo.
+Os dados recebidos em formato JSON são convertidos em objetos da classe `Receita`, permitindo sua 
+utilização nas diferentes telas do aplicativo.
 
 ## Estrutura do projeto
 
@@ -80,7 +84,6 @@ lib/
 ### Organização dos arquivos
 
 | Arquivo | Responsabilidade |
-|---|---|
 | `main.dart` | Inicialização do aplicativo e configuração do tema. |
 | `receita.dart` | Modelo responsável por representar os dados das receitas. |
 | `receita_service.dart` | Comunicação com a API e tratamento das requisições. |
@@ -91,11 +94,13 @@ lib/
 
 ### Explorar
 
-Tela inicial responsável por apresentar as receitas disponíveis e permitir que o usuário realize pesquisas pelo nome.
+Tela inicial responsável por apresentar as receitas disponíveis e permitir que o usuário realize 
+pesquisas pelo nome.
 
 ### Detalhes da receita
 
-Apresenta as informações completas da receita selecionada, incluindo imagem, avaliação, ingredientes, tempo de preparo, porções e instruções.
+Apresenta as informações completas da receita selecionada, incluindo imagem, avaliação, ingredientes, 
+tempo de preparo, porções e instruções.
 
 Também permite adicionar ou remover a receita da lista de favoritos.
 
@@ -132,16 +137,12 @@ O aplicativo possui mecanismos para lidar com diferentes situações durante sua
 - Lista de favoritos vazia.
 - Carregamento de informações.
 
-Em caso de falha na comunicação com a API, o usuário recebe uma mensagem informativa e pode tentar realizar a requisição novamente.
-
-## Identidade visual
-
-A identidade visual do Saborê foi desenvolvida com o objetivo de proporcionar uma experiência agradável, utilizando uma interface minimalista, cores suaves e componentes de fácil navegação.
+Em caso de falha na comunicação com a API, o usuário recebe uma mensagem informativa e pode tentar 
+realizar a requisição novamente.
 
 ### Paleta de cores
 
 | Cor | Código hexadecimal | Aplicação |
-|---|---|---|
 | Verde principal | `#496747` | Botões e elementos de destaque |
 | Bege claro | `#FAF7F0` | Fundo do aplicativo |
 | Verde suave | `#DCE8D6` | Elementos secundários e seleção |
@@ -205,13 +206,3 @@ Durante o desenvolvimento do projeto, foram utilizados os seguintes conceitos:
 - Tratamento de exceções.
 - Organização e separação de responsabilidades.
 - Desenvolvimento de interfaces mobile.
-
-## Possíveis melhorias futuras
-
-- Armazenamento permanente dos favoritos.
-- Filtros por categorias de receitas.
-- Cadastro e autenticação de usuários.
-- Criação de receitas personalizadas.
-- Lista de compras baseada nos ingredientes.
-- Planejamento semanal de refeições.
-- Suporte ao modo escuro.

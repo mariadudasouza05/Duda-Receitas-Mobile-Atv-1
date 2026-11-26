@@ -87,7 +87,6 @@ class _DetalhesReceitaState extends State<DetalhesReceita> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
 
-            // Imagem da receita
             ClipRRect(
               borderRadius: BorderRadius.circular(20),
               child: Container(
@@ -117,7 +116,6 @@ class _DetalhesReceitaState extends State<DetalhesReceita> {
 
             const SizedBox(height: 20),
 
-            // Nome da receita
             Text(
               receita.nome,
               style: const TextStyle(
@@ -129,7 +127,6 @@ class _DetalhesReceitaState extends State<DetalhesReceita> {
 
             const SizedBox(height: 8),
 
-            // Tipo de refeição e avaliação
             Row(
               children: [
                 Expanded(
@@ -163,7 +160,6 @@ class _DetalhesReceitaState extends State<DetalhesReceita> {
 
             const SizedBox(height: 22),
 
-            // Informações da receita
             Row(
               children: [
                 Expanded(
@@ -204,7 +200,6 @@ class _DetalhesReceitaState extends State<DetalhesReceita> {
 
             const SizedBox(height: 30),
 
-            // Ingredientes
             const Text(
               'Ingredientes',
               style: TextStyle(
@@ -248,7 +243,6 @@ class _DetalhesReceitaState extends State<DetalhesReceita> {
 
             const SizedBox(height: 25),
 
-            // Modo de preparo
             const Text(
               'Modo de preparo',
               style: TextStyle(

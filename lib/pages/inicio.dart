@@ -82,7 +82,7 @@ class _InicioState extends State<Inicio> {
       if (!mounted) return;
 
       setState(() {
-        erro = 'Não foi possível carregar as receitas.\n\nDetalhe: $e';
+        erro = 'Não foi possível carregar as receitas.';
         carregando = false;
       });
     }
@@ -119,7 +119,7 @@ class _InicioState extends State<Inicio> {
       if (!mounted) return;
 
       setState(() {
-        erro = 'Não foi possível realizar a pesquisa.\n\nDetalhe: $e';
+        erro = 'Não foi possível realizar a pesquisa.';
         carregando = false;
       });
     }
@@ -645,7 +645,7 @@ class _InicioState extends State<Inicio> {
         backgroundColor: fundo,
         elevation: 0,
         title: const Text(
-          'Saborê',
+          'Duda Receitas',
           style: TextStyle(
             color: verde,
             fontSize: 23,

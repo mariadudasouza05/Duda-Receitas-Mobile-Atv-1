@@ -8,7 +8,9 @@ class ReceitaService {
   Future<List<Receita>> buscarReceitas() async {
     final url = Uri.parse(baseUrl);
 
-    final resposta = await http.get(url);
+    final resposta = await http.get(url).timeout(
+      const Duration(seconds: 15),
+    );
 
     if (resposta.statusCode == 200) {
       final dados = jsonDecode(resposta.body);
